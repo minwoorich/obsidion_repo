@@ -1,0 +1,9 @@
+.obsidian/
+
+.obsidian/workspace-mobile.json
+.obsidian/workspace.json
+.obsidian/app.json
+
+.trash/
+.DS_Store
+.idea/
