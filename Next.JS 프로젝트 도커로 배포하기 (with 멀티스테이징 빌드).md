@@ -36,4 +36,76 @@ CMD ["npm", "start"]
 ## 2. 멀티 스테이징 빌드를 통한 이미지 용량 개선
 
 그래서 이후 공식문서를 찾아본 결과 사실상 정답지에 가까운 Dockerfile 예시를 얻을 수 있었다.
+[Vercel/nextJs 레포지토리](https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile)
+하지만 바로 Dockerfile 을 보기 전에 **멀티 스테이징 빌드** 가 무슨 말인지 잠깐 설명을 하고 넘어가보도록 하자.
 
+### 멀티 스테이징 빌드 란?
+
+> 멀티스테이징 빌드 (Multi-stage build) 는 docker 에서 사용되는 빌드 기법으로, 하나의 Dockerfile 내에서 여러 단계의 빌드 과정을 정의하여 최종 이미지의 크기를 줄이고 보안을 강화하는 방법입니다. 
+
+
+### Dockerfile
+```shell
+# 0. 베이스 이미지 설정
+FROM node:20-alpine AS base
+
+# 1. 의존성 설치 스테이지
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+
+RUN \
+
+    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+
+    elif [ -f package-lock.json ]; then npm ci; \
+
+    elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i; \
+
+    else echo "Lockfile not found." && exit 1; \
+
+    fi
+
+# 2. 빌드 스테이지
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN \
+
+    if [ -f yarn.lock ]; then yarn build; \
+
+    elif [ -f package-lock.json ]; then npm run build; \
+
+    elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm run build; \
+
+    else echo "Lockfile not found." && exit 1; \
+
+    fi
+
+# 3. 프로덕션 스테이지
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+CMD ["node", "server.js"]
+```
+
+파트별로 도커 파일 스크립트를 분석 해보도록 하겟다.
