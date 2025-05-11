@@ -170,9 +170,6 @@ Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅�
 > 🤔 근데 도커 이미지는 원래 레이어 별로 캐싱 되는거 아니야? 굳이 멀티스테이징을 해야해?
 
 자 그럼 처음에 작성했던 Dockerfile 을 살펴보자. 
-
-![[Pasted image 20250512000450.png]]
-
 ```shell
 FROM node:20-alpine
 WORKDIR /app
