@@ -265,5 +265,4 @@ node.js 어플리케이션이 "production" 모드로 실행되도록 환경변�
 **``CMD ["node", "server.js"]``**
 standalnoe 모드에서는 next.js 어플리케이션을 실행하기위해 next start 명령어가 아닌 server.js 를 직접 실행하여 어플리케이션을 구동시킨다.
 
-> 🤔 작성 한 도커 파일 내용에 대해서는 이해했어,,, 근데 왜 굳이 빌드 스테이지로 따로 나눠놓았을까?
 
