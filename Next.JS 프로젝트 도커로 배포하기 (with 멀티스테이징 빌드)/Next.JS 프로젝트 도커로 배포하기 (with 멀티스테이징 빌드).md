@@ -237,11 +237,20 @@ node.js 어플리케이션이 "production" 모드로 실행되도록 환경변�
 
 **``RUN addgroup --system --gid 1001 nodejs``**
 **``RUN adduser --system --uid 1001 nextjs``**
-컨테이너 내에서 애플리케이션을 root 외의 권한으로 실행할 수 있도록 설정. ``--system`` 옵션은 사람이 아닌 소프트웨어나 서비스가 사용하기 위해 만든 시스템 계정임을 의미한다. 고로 직접 로그인 할 수는 없다.
+컨테이너 내에서 애플리케이션을 실행할 때 root 외의 권한으로 실행할 수 있도록 설정하는 명령어. 
+``nodejs`` 라는 그룹과, ``nextjs`` 라는 유저 계정을 추가 하고 추후 시스템 사용자로 애플리케이션을 실행하여 보안을 강화 한다.
+
+``--system`` 옵션을 부여했기 때문에 사람이 직접 로그인 할 수는 없고 오직 소프트웨어나 서비스가 해당 계정 권한으로 어플리케이션을 실행시킨다.
 
 **``COPY --from=builder /app/public ./public``**
 **``COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./``**
 **``COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static``**
+``builder`` 스테이지에서 생성(빌드) 된 파일들을 복사해서 현재 작업 디렉토리에 옮겨담는 명령어.
+
+이때 ``--chown`` 옵션을 이용하여 파일 및 디렉토리 권한을 위에서 생성한 계정 및 그룹 권한을 부여해준다.
+
+여기서 중요한것은 ``next.config.mjs`` 파일에 빌드 출력 방식을 standalone 으로 설정해줘야한다. 
+![[Pasted image 20250512020217.png]]
 
 
 
