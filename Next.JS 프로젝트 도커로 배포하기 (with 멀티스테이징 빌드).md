@@ -122,11 +122,11 @@ CMD ["node", "server.js"]
 
 위 Dockerfile 은 **의존성 설치**, **빌드**, **프로덕션** 스테이지로 크게 **세 가지** 로 구분이 된다. (베이스 이미지 설정 하는 부분 제외)
 
-### 의존성 설치 스테이지
+### 의존성 설치 스테이지 : 빌드 시간을 단축한다
 ```shell
 # 1. 의존성 설치 스테이지
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
+FROM base AS deps 
+RUN apk add --no-cache libc6-compat 
 WORKDIR /app
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 
@@ -143,4 +143,21 @@ RUN \
     fi
 ```
 
-우선 해당 스테이지는 빌드에 필요한 의존성들을 모두 다운 및 설치 받는 스테이지다.
+#### ``FROM base AS deps ``
+base 이미지로 부터 ``deps`` 라는 스테이지를 생성
+
+#### ``RUN apk add --no-cache libc6-compat `` 
+Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅스이다. 그렇기 때문에 해당 이미지 기반에서 특정 프로그램 실행시 호환이 안되는 문제가 발생하는 경우가 발생한다. 그래서 혹시나 이런 문제를 방지하고자  libc6-compat 호환성 라이브러리를 설치하는것이다.
+
+#### ``WORKDIR /app``
+작업 디렉토리 영역을 ``/app`` 으로 지정
+
+#### ``COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./``
+
+현재 프로젝트 루트에 위치해있는 **패키지 관리 파일** 들을 Docker 의 작업 디렉토리(``/app``)로 복사하는것. 패키지 관리자가 각각 다를 경우를 대비해 모든 패키지 관리 파일들을 나열해놓았다. 
+
+#### RUN if ....
+해당하는 패키지 관리자에 맞게 의존성을 설치. 이때, yarn 의 ``--frozen-lockfile`` 혹은 ``npm ci`` 와 같이 
+```
+
+우선 해당 스테이지는 빌드에 필요한 의존성들을 모두 다운 및 설치 받는 스테이지다. 
