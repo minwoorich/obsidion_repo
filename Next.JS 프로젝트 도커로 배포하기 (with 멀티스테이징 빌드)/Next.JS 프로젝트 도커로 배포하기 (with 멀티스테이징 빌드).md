@@ -237,8 +237,11 @@ node.js 어플리케이션이 "production" 모드로 실행되도록 환경변�
 
 **``RUN addgroup --system --gid 1001 nodejs``**
 **``RUN adduser --system --uid 1001 nextjs``**
+컨테이너 내에서 애플리케이션을 root 외의 권한으로 실행할 수 있도록 설정. ``--system`` 옵션은 사람이 아닌 소프트웨어나 서비스가 사용하기 위해 만든 시스템 계정임을 의미한다. 고로 직접 로그인 할 수는 없다.
 
-
+**``COPY --from=builder /app/public ./public``**
+**``COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./``**
+**``COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static``**
 
 
 
