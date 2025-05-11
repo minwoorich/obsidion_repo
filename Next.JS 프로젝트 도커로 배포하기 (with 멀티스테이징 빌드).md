@@ -178,7 +178,7 @@ Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅�
 현재 프로젝트의 모든 소스코드 및 파일 복사
 
 **``ENV NEXT_TELEMETRY_DISABLED 1``**
-
+Next JS 는 
 
 
 
