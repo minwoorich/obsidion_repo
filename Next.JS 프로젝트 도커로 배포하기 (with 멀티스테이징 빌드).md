@@ -59,12 +59,13 @@ Dockerfile 을 작성 할 때 기본적으로는 빌드에 필요한 기본 이�
 # 0. 베이스 이미지 설정
 FROM node:20-alpine AS base
 
-# 1. 의존성 설치 스테이지
-FROM base AS deps
+# 1. 빌드 스테이지 (의존성 설치 + 빌드 통합)
+FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 
+# 의존성 파일 복사 및 설치
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
 
     if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
@@ -76,14 +77,10 @@ RUN \
     else echo "Lockfile not found." && exit 1; \
 
     fi
-
-# 2. 빌드 스테이지
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+ 
+# 소스 코드 복사 및 빌드
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
-
 RUN \
 
     if [ -f yarn.lock ]; then yarn build; \
@@ -96,7 +93,8 @@ RUN \
 
     fi
 
-# 3. 실행 스테이지
+  
+# 2. 실행 스테이지
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV production
@@ -120,16 +118,17 @@ CMD ["node", "server.js"]
 
 꽤 기니깐 차근차근 파트별로 나눠서 보자면 우선 
 
-위 Dockerfile 은 **의존성 설치**, **빌드**, **실행** 스테이지로 크게 **세 가지** 로 구분이 된다. (베이스 이미지 설정 하는 부분 제외)
+위 Dockerfile 은  **빌드**, **실행** 스테이지로 크게 **두 가지** 로 구분이 된다. (베이스 이미지 설정 하는 부분 제외)
 
-### 의존성 설치 스테이지
+### 빌드 스테이지
 ```shell
-# 1. 의존성 설치 스테이지
-FROM base AS deps 
-RUN apk add --no-cache libc6-compat 
+# 1. 빌드 스테이지 (의존성 설치 + 빌드 통합)
+FROM base AS builder
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 
+# 의존성 파일 복사 및 설치
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
 
     if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
@@ -141,12 +140,27 @@ RUN \
     else echo "Lockfile not found." && exit 1; \
 
     fi
+ 
+# 소스 코드 복사 및 빌드
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN \
+
+    if [ -f yarn.lock ]; then yarn build; \
+
+    elif [ -f package-lock.json ]; then npm run build; \
+
+    elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm run build; \
+
+    else echo "Lockfile not found." && exit 1; \
+
+    fi
 ```
 
 우선 해당 스테이지는 빌드에 필요한 의존성들을 모두 다운 및 설치 받는 스테이지며 한 줄 한 줄 분석해보자.
 
-**``FROM base AS deps ``**
-base 이미지로 부터 ``deps`` 라는 스테이지를 생성
+**``FROM base AS builder ``**
+base 이미지로 부터 builder 라는 스테이지를 생성
 
 **``RUN apk add --no-cache libc6-compat ``**
 Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅스이다. 그렇기 때문에 해당 이미지 기반에서 특정 프로그램 실행시 호환이 안되는 문제가 발생하는 경우가 발생한다. 그래서 혹시나 이런 문제를 방지하고자  libc6-compat 호환성 라이브러리를 설치하는것이다.
@@ -159,6 +173,10 @@ Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅�
 
 **RUN if ....**
 해당하는 패키지 관리자에 맞게 의존성을 설치하는 명령어. 이때, yarn 의 ``--frozen-lockfile`` 혹은 ``npm ci`` 와 같이 오직 lock 파일에 명시된 버전만 설치 되도록(frozen 모드) 옵션을 걸어두었다. (pnpm 은 기본적으로 frozen 모드로 동작)
+
+**``COPY . .`` **
+
+
 
 > 🤔 알았어,,, 근데 왜 굳이 의존성 설치 스테이지로 따로 나눠놓았을까?
 
