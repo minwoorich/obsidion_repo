@@ -54,10 +54,8 @@ Dockerfile 을 작성 할 때 기본적으로는 빌드에 필요한 기본 이�
 
 이러한 문제점들을 해결하고자 Docker 17.05 버전 이후부터 **멀티 스테이징 빌드** 라는 고급 기능을 도입하게 되었다.
 
+어떻게 더 문제점들을 개선했는지는 아래 실제 Dockerfile 과 함께 같이 살펴보자.
 
-
-
-### Dockerfile
 ```shell
 # 0. 베이스 이미지 설정
 FROM node:20-alpine AS base
@@ -121,4 +119,27 @@ ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
 ```
 
-파트별로 도커 파일 스크립트를 분석 해보도록 하겟다.
+꽤 기니깐 차근차근 파트별로 나눠서 보자면 우선 
+
+위 Dockerfile 은 의존성 설치, 빌드, 프로덕션 스테이지로 크게 세 가지로 구분이 된다.
+
+### 의존성 설치 스테이지
+```shell
+# 1. 의존성 설치 스테이지
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+
+RUN \
+
+    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+
+    elif [ -f package-lock.json ]; then npm ci; \
+
+    elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i; \
+
+    else echo "Lockfile not found." && exit 1; \
+
+    fi
+```
