@@ -77,26 +77,7 @@ RUN \
 
     fi
 
-# 2. 빌드 스테이지
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN \
-
-    if [ -f yarn.lock ]; then yarn build; \
-
-    elif [ -f package-lock.json ]; then npm run build; \
-
-    elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm run build; \
-
-    else echo "Lockfile not found." && exit 1; \
-
-    fi
-
-# 3. 프로덕션 스테이지
+# 3. 실행 스테이지
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV production
@@ -120,7 +101,7 @@ CMD ["node", "server.js"]
 
 꽤 기니깐 차근차근 파트별로 나눠서 보자면 우선 
 
-위 Dockerfile 은 **의존성 설치**, **빌드**, **프로덕션** 스테이지로 크게 **세 가지** 로 구분이 된다. (베이스 이미지 설정 하는 부분 제외)
+위 Dockerfile 은 **의존성 설치**, **빌드**, **실행** 스테이지로 크게 **세 가지** 로 구분이 된다. (베이스 이미지 설정 하는 부분 제외)
 
 ### 의존성 설치 스테이지: 캐싱을 통한 빌드 시간 단축
 ```shell
