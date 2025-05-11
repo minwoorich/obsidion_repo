@@ -174,7 +174,11 @@ Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅�
 **RUN if ....**
 해당하는 패키지 관리자에 맞게 의존성을 설치하는 명령어. 이때, yarn 의 ``--frozen-lockfile`` 혹은 ``npm ci`` 와 같이 오직 lock 파일에 명시된 버전만 설치 되도록(frozen 모드) 옵션을 걸어두었다. (pnpm 은 기본적으로 frozen 모드로 동작)
 
-**``COPY . .`` **
+**``COPY . .``**
+현재 프로젝트의 모든 소스코드 및 파일 복사
+
+**``ENV NEXT_TELEMETRY_DISABLED 1``**
+
 
 
 
