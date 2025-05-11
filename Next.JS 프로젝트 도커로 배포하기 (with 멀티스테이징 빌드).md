@@ -143,21 +143,23 @@ RUN \
     fi
 ```
 
-#### ``FROM base AS deps ``
+우선 해당 스테이지는 빌드에 필요한 의존성들을 모두 다운 및 설치 받는 스테이지며 한 줄 한 줄 분석해보자.
+
+**``FROM base AS deps ``**
 base 이미지로 부터 ``deps`` 라는 스테이지를 생성
 
-#### ``RUN apk add --no-cache libc6-compat `` 
+**``RUN apk add --no-cache libc6-compat ``**
 Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅스이다. 그렇기 때문에 해당 이미지 기반에서 특정 프로그램 실행시 호환이 안되는 문제가 발생하는 경우가 발생한다. 그래서 혹시나 이런 문제를 방지하고자  libc6-compat 호환성 라이브러리를 설치하는것이다.
 
-#### ``WORKDIR /app``
+**``WORKDIR /app``**
 작업 디렉토리 영역을 ``/app`` 으로 지정
 
-#### ``COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./``
-
+**``COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./``**
 현재 프로젝트 루트에 위치해있는 **패키지 관리 파일** 들을 Docker 의 작업 디렉토리(``/app``)로 복사하는것. 패키지 관리자가 각각 다를 경우를 대비해 모든 패키지 관리 파일들을 나열해놓았다. 
 
-#### RUN if ....
-해당하는 패키지 관리자에 맞게 의존성을 설치. 이때, yarn 의 ``--frozen-lockfile`` 혹은 ``npm ci`` 와 같이 
-```
+**RUN if ....**
+해당하는 패키지 관리자에 맞게 의존성을 설치하는 명령어. 이때, yarn 의 ``--frozen-lockfile`` 혹은 ``npm ci`` 와 같이 오직 lock 파일에 명시된 버전만 설치 되도록(frozen 모드) 옵션을 걸어두었다. (pnpm 은 기본적으로 frozen 모드로 동작)
 
-우선 해당 스테이지는 빌드에 필요한 의존성들을 모두 다운 및 설치 받는 스테이지다. 
+> 그래서 왜 굳이 이렇게 의존성 설치 스테이징을 따로 나눠놓았을까?
+
+
