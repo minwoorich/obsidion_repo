@@ -116,9 +116,7 @@ ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
 ```
 
-꽤 기니깐 차근차근 파트별로 나눠서 보자면 우선 
-
-위 Dockerfile 은  **빌드**, **실행** 스테이지로 크게 **두 가지** 로 구분이 된다. (베이스 이미지 설정 하는 부분 제외)
+우선 Dockerfile 의 스테이지별 (**빌드**, **실행**)로 각 명령어부터 차근차근 분석해보자.
 
 ### 빌드 스테이지
 ```shell
@@ -160,7 +158,7 @@ RUN \
 우선 해당 스테이지는 빌드에 필요한 의존성들을 모두 다운 및 설치 받는 스테이지며 한 줄 한 줄 분석해보자.
 
 **``FROM base AS builder ``**
-base 이미지로 부터 builder 라는 스테이지를 생성
+base 이미지로 부터 builder 라는 새로운 빌드 스테이지를 생성
 
 **``RUN apk add --no-cache libc6-compat ``**
 Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅스이다. 그렇기 때문에 해당 이미지 기반에서 특정 프로그램 실행시 호환이 안되는 문제가 발생하는 경우가 발생한다. 그래서 혹시나 이런 문제를 방지하고자  libc6-compat 호환성 라이브러리를 설치하는것이다.
@@ -184,22 +182,37 @@ Alpine Linux 의 경우 경량화를 위해 최소한으로만 설치된 리눅�
 **``RUN if ...``**
 사용 중인 패키지 매니저에 맞게 **빌드 하는 명령어** 
 
+### 실행 스테이지
+```shell
+# 2. 실행 스테이지
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+CMD ["node", "server.js"]
+```
+**``FROM base AS runner ``**
+base 이미지로 부터 runner 라는 새로운 빌드 스테이지를 생성. 이름에서 알다시피 해당 빌드 단계는 "실행" 단계임을 명시한다.
+
+**``WORKDIR /app``**
+작업 디렉토리 영역을 ``/app`` 으로 지정
+
+**``ENV NODE_ENV production``**
+
+
 > 🤔 작성 한 도커 파일 내용에 대해서는 이해했어,,, 근데 왜 굳이 빌드 스테이지로 따로 나눠놓았을까?
 
-우리가 코드를 수정하고, 통합하고, 배포하는 과정에서 과연 의존성 파일이 수정 되는 경우가 얼마나 될까?
-대부분의 수정은 코드 변경이 주를 이룬다. 즉, 의존성 파일은 최초 배포 이후에는 자주 변경되지 않게 된다. 그렇다면 코드 수정 이후 **매번 빌드할 때마다 의존성을 새로 다운받고 설치하는것은 매우 비효율적**이고 빌드 시간을 많이 잡아먹게 될 것이다. 
-
-하지만 스테이지를 나눌 경우 의존성 설치 스테이지(deps) 는 한번 빌드 이후에는 캐싱이 되어 다음 빌드 때는 **캐싱된 레이어를 그대로 재사용** 할 수 있게 된다.  즉, 소스 코드가 변경되어 다시 빌드를 하더라도 의존성 설치 부분은 기존에 사용한 것을 재활용하므로 **빌드시간을 대폭 단축** 시킬 수 있다. 
-
-> 🤔 근데 도커 이미지는 원래 레이어 별로 캐싱 되는거 아니야? 굳이 멀티스테이징을 해야해?
-
-자 그럼 처음에 작성했던 Dockerfile 을 살펴보자. 
-```shell
-FROM node:20-alpine
-WORKDIR /app
-COPY package.json ./          # 레이어 1
-RUN npm install               # 레이어 2
-COPY . .                      # 레이어 3 (소스 코드가 변경되면 이 레이어부터 캐시 무효화)
-RUN npm run build             # 레이어 4 (소스 코드가 변경되면 항상 다시 실행됨)
-```
-원래 Dockerfile 의 각 명령어는 하나의 레이어를 생성하기 때문에 위와 같이 단일 스테이지에서도 레이어 캐싱은 동작을 한다. 하지만 문제는 
