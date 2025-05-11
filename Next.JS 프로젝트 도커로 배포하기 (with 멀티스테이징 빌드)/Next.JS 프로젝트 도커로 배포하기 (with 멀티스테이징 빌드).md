@@ -249,10 +249,21 @@ node.js 어플리케이션이 "production" 모드로 실행되도록 환경변�
 
 이때 ``--chown`` 옵션을 이용하여 파일 및 디렉토리 권한을 위에서 생성한 계정 및 그룹 권한을 부여해준다.
 
-여기서 중요한것은 ``next.config.mjs`` 파일에 빌드 출력 방식을 standalone 으로 설정해줘야한다. 
+여기서 중요한것은 ``next.config.mjs`` 파일에 빌드 출력 방식을 [standalone](https://nextjs.org/docs/pages/api-reference/config/next-config-js/output) 으로 설정해줘야한다. 
+
 ![[Pasted image 20250512020217.png]]
 
+**``USER nextjs``**
+이제부터 도커 컨테이너가 실행 될 때 실행 사용자를 지정해주는 명령어이다.  루트 권한 보다 제한된 권한으로 어플리케이션을 실행 할 수 있기에 보안이 강화된다.
 
+**``EXPOSE 3000``**
+**``ENV PORT=3000``**
+**``ENV HOSTNAME=0.0.0.0``**
+포트는 3000 번대 포트를 허용하고, 
+컨테이너 외부에서 오는 요청도 수신받을 수 있도록  ``0.0.0.0`` 으로 설정하였다. 
+
+**``CMD ["node", "server.js"]``**
+standalnoe 모드에서는 next.js 어플리케이션을 실행하기위해 next start 명령어가 아닌 server.js 를 직접 실행하여 어플리케이션을 구동시킨다.
 
 > 🤔 작성 한 도커 파일 내용에 대해서는 이해했어,,, 근데 왜 굳이 빌드 스테이지로 따로 나눠놓았을까?
 
